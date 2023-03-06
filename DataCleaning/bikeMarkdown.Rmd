@@ -1,0 +1,455 @@
+---
+title: "bikeMarkdown"
+author: "Manny"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r}
+options(repos = list(CRAN="http://cran.rstudio.com/"))
+```
+
+```{r}
+install.packages("tidyverse")
+install.packages("plyr")
+install.packages("dplyr")
+```
+
+```{r}
+library(tidyverse)
+library(plyr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(tidyr)
+```
+
+# Read in and combine all csv files from Q1 location to a dataframe
+```{r}
+setwd("D:/Coursera/Data Analytics/Portfolio & Case Study/Case Studies/Case Study 1_How does a bike_share navigate speedy success/Dataset/Unzipped/2020_2023/2022/Q1")
+q1_2022 <- ldply(list.files(), read.csv, header=TRUE)
+View(q1_2022)
+```
+
+# Read in and combine all csv files from Q2 location to a dataframe
+```{r}
+setwd("D:/Coursera/Data Analytics/Portfolio & Case Study/Case Studies/Case Study 1_How does a bike_share navigate speedy success/Dataset/Unzipped/2020_2023/2022/Q2")
+q2_2022 <- ldply(list.files(), read.csv, header=TRUE)
+View(q2_2022)
+```
+
+# Read in and combine all csv files from Q3 location to a dataframe
+```{r}
+setwd("D:/Coursera/Data Analytics/Portfolio & Case Study/Case Studies/Case Study 1_How does a bike_share navigate speedy success/Dataset/Unzipped/2020_2023/2022/Q3")
+q3_2022 <- ldply(list.files(), read.csv, header=TRUE)
+View(q3_2022)
+```
+
+# Read in and combine all csv files from Q4 location to a dataframe
+```{r}
+setwd("D:/Coursera/Data Analytics/Portfolio & Case Study/Case Studies/Case Study 1_How does a bike_share navigate speedy success/Dataset/Unzipped/2020_2023/2022/Q4")
+q4_2022 <- ldply(list.files(), read.csv, header=TRUE)
+View(q4_2022)
+```
+
+# Combine all the dataframes together and form the full year in one dataframe
+```{r}
+year_2022 <- bind_rows(q1_2022,q2_2022,q3_2022,q4_2022)
+View(year_2022)
+```
+
+# Remove the last 4 columns (lat, long, gender, birthyear)
+```{r}
+year_2022 <- year_2022 %>%
+  select(-c(start_lat,start_lng,end_lat,end_lng))
+View(year_2022)
+```
+# Inspect the new table that has been created
+
+#List of column names
+```{r}
+colnames(year_2022)  
+```
+
+```{r}
+nrow(year_2022)  #How many rows are in data frame?
+```
+
+```{r}
+dim(year_2022)  #Dimensions of the data frame?
+```
+
+```{r}
+head(year_2022)  #See the first 6 rows of data frame.  Also tail(all_trips)
+```
+
+```{r}
+str(year_2022)  #See list of columns and data types (numeric, character, etc)
+```
+
+```{r}
+summary(year_2022)  #Statistical summary of data. Mainly for numerics
+```
+
+# Change the values
+```{r}
+year_2022 <-  year_2022 %>%
+  mutate(member_casual = recode(member_casual
+                           ,"Subscriber" = "member"
+                           ,"Customer" = "casual"))
+View(year_2022)
+```
+
+# check the data
+```{r}
+table(year_2022$member_casual)
+```
+
+# Add columns that list the date, month, day, and year of each ride
+```{r}
+year_2022$date <- as.Date(year_2022$started_at) #The default format is yyyy-mm-dd
+```
+
+```{r}
+year_2022$month <- format(as.Date(year_2022$date), "%m")
+year_2022$day <- format(as.Date(year_2022$date), "%d")
+year_2022$year <- format(as.Date(year_2022$date), "%Y")
+year_2022$day_of_week <- format(as.Date(year_2022$date), "%A")
+```
+
+# Add a "ride_length" calculation to all_trips (in seconds)
+```{r}
+year_2022$ride_length <- difftime(year_2022$ended_at,year_2022$started_at)
+View(year_2022)
+```
+
+# Convert "ride_length" from Factor to numeric so we can run calculations on the data
+```{r}
+is.factor(year_2022$ride_length)
+year_2022$ride_length <- as.numeric(as.character(year_2022$ride_length))
+is.numeric(year_2022$ride_length)
+```
+# Remove "bad" data
+# The dataframe includes a few hundred entries when bikes were taken out of docks and checked for quality by Divvy or ride_length was negative
+# We will create a new version of the dataframe (v2) since data is being removed
+```{r}
+year_2022_v2 <- year_2022[!(year_2022$start_station_name == "HQ QR" | year_2022$ride_length<0),]
+View(year_2022_v2)
+```
+# Remove trips that are longer than a day
+```{r}
+year_2022 <- year_2022_v2[!(year_2022_v2$ride_length > 86400 | year_2022_v2$ride_length <= 0),]
+View(year_2022)
+```
+
+# mean for year_2022_v2
+```{r}
+mean(year_2022_v2$ride_length) #straight average (total ride length / rides)
+```
+
+# mean for year_2022
+```{r}
+mean(year_2022$ride_length) #straight average (total ride length / rides)
+```
+
+# median for 2022 v2
+```{r}
+median(year_2022_v2$ride_length) #midpoint number in the ascending array of ride lengths
+```
+
+# median for 2022
+```{r}
+median(year_2022$ride_length) #midpoint number in the ascending array of ride lengths
+```
+
+# max for year 2022_v2
+```{r}
+max(year_2022_v2$ride_length) #longest ride
+```
+
+#longest ride for year_2022
+```{r}
+max(year_2022$ride_length) 
+```
+
+# min ride for year 2022 v2
+```{r}
+min(year_2022_v2$ride_length)
+```
+
+# min ride for year 2022 
+```{r}
+min(year_2022$ride_length)
+```
+
+# combine all above together year 2022 v2
+```{r}
+summary(year_2022_v2$ride_length)
+```
+
+# combine all above together year 2022
+```{r}
+summary(year_2022$ride_length)
+```
+
+# Compare members and casual users year 2022 v2
+```{r}
+aggregate(year_2022_v2$ride_length ~ year_2022_v2$member_casual, FUN = mean)
+```
+
+# Compare members and casual users mean year 2022
+```{r}
+aggregate(year_2022$ride_length ~ year_2022$member_casual, FUN = mean)
+```
+
+# Compare members and casual users median year 2022 v2
+```{r}
+aggregate(year_2022_v2$ride_length ~ year_2022_v2$member_casual, FUN = median)
+```
+
+# Compare members and casual users median year 2022
+```{r}
+aggregate(year_2022$ride_length ~ year_2022$member_casual, FUN = median)
+```
+
+# Compare members and casual users max year 2022 v2
+```{r}
+aggregate(year_2022_v2$ride_length ~ year_2022_v2$member_casual, FUN = max)
+```
+
+# Compare members and casual users max year 2022
+```{r}
+aggregate(year_2022$ride_length ~ year_2022$member_casual, FUN = max)
+```
+
+# Compare members and casual users min year 2022 v2
+```{r}
+aggregate(year_2022_v2$ride_length ~ year_2022_v2$member_casual, FUN = min)
+```
+
+# Compare members and casual users min year 2022
+```{r}
+aggregate(year_2022$ride_length ~ year_2022$member_casual, FUN = min)
+```
+
+# See the average ride time by each day for members vs casual users
+```{r}
+aggregate(year_2022$ride_length ~ year_2022$member_casual + year_2022$day_of_week, FUN = mean)
+```
+
+# Notice that the days of the week are out of order. Let's fix that. year 2022
+```{r}
+year_2022$day_of_week <- ordered(year_2022$day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+```
+
+# average ride time by each day for members vs casual users year 2022
+```{r}
+aggregate(year_2022$ride_length ~ year_2022$member_casual + year_2022$day_of_week, FUN = mean)
+```
+
+# year 2022 amount of riders average ride length
+```{r}
+year_2022 %>% 
+  mutate(weekday = wday(started_at)) %>%  #creates weekday field using wday()
+  group_by(member_casual, weekday) %>%  #groups by usertype and weekday
+  dplyr::summarise(number_of_rides = n()							#calculates the number of rides and average duration 
+  ,average_duration = mean(ride_length)) %>% 		# calculates the average duration
+  arrange(member_casual, weekday)								# sorts
+```
+
+# Let's visualize the number of rides by rider type year 2022
+```{r}
+year_2022 %>% 
+  mutate(weekday = wday(started_at)) %>% 
+  group_by(member_casual, weekday) %>% 
+  dplyr::summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  labs(title = "# of rides by rider type", caption = "Manuel Aguilar | Capstone Project")
+```
+
+
+# Let's create a visualization for average duration
+```{r}
+year_2022 %>% 
+  mutate(weekday = wday(started_at)) %>% 
+  group_by(member_casual, weekday) %>% 
+  dplyr::summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  labs(title = "Average Ride", caption = "Manuel Aguilar | Capstone Project")
+```
+
+# Create a csv file that we will visualize in Excel, Tableau, or my presentation software
+```{r}
+counts <- aggregate(year_2022$ride_length ~ year_2022$member_casual + year_2022$day_of_week, FUN = mean)
+write.csv(counts, file = '~/bikeshare/avg_ride_length1.csv')
+```
+
+# Number of rides between members and casual riders for each month
+```{r}
+year_2022 %>% 
+  group_by(member_casual, month) %>% 
+  summarise(number_of_rides = n(), .groups = 'drop') %>% 
+  arrange(month)
+```
+
+```{r}
+# Comparing general bike type preference between members and casual riders
+year_2022 %>% 
+  group_by(rideable_type, member_casual) %>% 
+  summarize(number_of_rides = n(), .groups = 'drop')
+```
+
+
+
+```{r}
+my_theme = theme(plot.title=element_text(size=20),
+                 axis.text.x=element_text(angle=45, size=16), 
+                 axis.text.y=element_text(size=16),
+                 axis.title.x=element_text(size=18), 
+                 axis.title.y=element_text(size=18),
+                 strip.text.x=element_text(size=16), 
+                 strip.text.y=element_text(size=16),
+                 legend.title=element_text(size=18), 
+                 legend.text=element_text(size=16))
+```
+
+
+# Viz 1 - general average riding duration between members and casual riders
+```{r}
+options(repr.plot.width = 6, repr.plot.height = 8)
+
+year_2022 %>% 
+  group_by(member_casual) %>% 
+  summarize(average_duration = mean(ride_length)) %>% 
+  ggplot(aes(x = member_casual, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(x = "Rider Type", y = "Average Duration", 
+       title = "Average Riding Duration by Rider Type") + my_theme
+```
+
+# Viz 2 - average riding duration of each day of week between members and casual riders
+```{r}
+options(repr.plot.width = 10, repr.plot.height = 8)
+
+year_2022 %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(average_duration = mean(ride_length), .groups = 'drop') %>% 
+  #arrange(member_casual, day_of_week) %>% 
+  ggplot(aes(x = day_of_week, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(x = "Day of Week", y = "Average Duration", 
+       fill = "Member/Casual",
+       title = "Average Riding Duration by Day: Members vs. Casual Riders") + my_theme
+```
+
+
+# Viz 3 - average number of rides of each day of week between members and casual riders
+```{r}
+year_2022 %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(number_of_rides = n(), .groups = 'drop') %>% 
+  #arrange(member_casual, day_of_week) %>% 
+  ggplot(aes(x = day_of_week, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge") + scale_y_continuous(labels = scales::comma) +
+  labs(x = "Day of Week", y = "Number of Rides", fill = "Member/Casual",
+       title = "Average Number of Rides by Day: Members vs. Casual Riders") + my_theme
+```
+
+# Viz 4 - average number of rides by month (casual riders)
+```{r}
+options(repr.plot.width = 10, repr.plot.height = 8)
+year_2022 %>% 
+  group_by(month, member_casual) %>% 
+  summarize(number_of_rides = n(), .groups = 'drop') %>% 
+  filter(member_casual == 'casual') %>%
+  drop_na() %>%
+  ggplot(aes(x = month, y = number_of_rides, fill = member_casual)) + 
+  geom_bar(position = 'dodge', stat = 'identity') + scale_y_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_text(angle = 45)) + 
+  labs(x = "Month", y = "Number of Rides", 
+       fill = "Member/Casual",
+       title = "Average Number of Rides by Month: Casual Riders") + my_theme
+```
+
+# Viz 9 - usage of different bikes by rider type
+```{r}
+options(repr.plot.width = 12, repr.plot.height = 8)
+
+year_2022 %>% 
+  group_by(rideable_type, member_casual) %>% 
+  summarize(number_of_rides = n(), .groups = 'drop') %>% 
+  drop_na() %>% 
+  ggplot(aes(x = member_casual, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(labels = scales::comma) +
+  facet_wrap(~rideable_type) +
+  labs(fill = "Member/Casual", x = "", y = "Number of Rides", 
+       title = "Usage of Different Bikes: Members vs. Casual Riders") + my_theme
+```
+
+
+```{r}
+year_2022 %>%
+  group_by(member_casual)%>%
+  summarize(count=length(ride_id)/1000000)%>%
+  mutate(pct=round(count*100/sum(count),2))%>%
+  ggplot(aes(x="",y=count,fill=member_casual))+geom_bar(width=1,stat="identity",color="black",show.legend=FALSE)+coord_polar("y",start=0)+geom_text(aes(label=paste(member_casual,paste(pct,"%"),sep="\n")),position=position_stack(vjust=0.5),color="black")+labs(title="Percent of rides by rider type",caption = "Manuel Aguilar - Capstone project")+theme_void()
+```
+
+```{r}
+year_2022 %>%
+  group_by(member_casual)%>%
+  summarize(number_of_rides = n(), .groups = 'drop')%>%
+  mutate(pct=number_of_rides,2)%>%
+  ggplot(aes(x="",y=number_of_rides,fill=member_casual))+geom_bar(width=1,stat="identity",color="black",show.legend=FALSE)+coord_polar("y",start=0)+geom_text(aes(label=paste(member_casual,paste(pct),sep="\n")),position=position_stack(vjust=0.5),color="black")+labs(title="Total of rides by rider type",caption = "Manuel Aguilar - Capstone project")+theme_void()
+```
+
+```{r}
+options(repr.plot.width = 10, repr.plot.height = 8)
+year_2022 %>% 
+  group_by(month, member_casual) %>% 
+  summarize(number_of_rides = n(), .groups = 'drop') %>% 
+  drop_na() %>%
+  ggplot(aes(x = month, y = number_of_rides, fill = member_casual)) + 
+  geom_bar(position = 'dodge', stat = 'identity') + scale_y_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_text(angle = 45)) + 
+  labs(x = "Month", y = "Number of Rides", 
+       fill = "Member/Casual",
+       title = "Average Number of Rides by Month: Casual Riders") + my_theme
+```
+
+```{r}
+options(repr.plot.width = 10, repr.plot.height = 8)
+
+year_2022 %>% 
+  group_by(member_casual, month) %>% 
+  summarise(average_duration = mean(ride_length), .groups = 'drop') %>% 
+  #arrange(member_casual, day_of_week) %>% 
+  ggplot(aes(x = month, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(x = "Month", y = "Average Duration", 
+       fill = "Member/Casual",
+       title = "Average Riding Duration by Month: Members vs. Casual Riders") + my_theme
+```
+
+# Average duration of ride daily compared
+```{r}
+options(repr.plot.width = 10, repr.plot.height = 8)
+
+year_2022 %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(average_duration = mean(ride_length), .groups = 'drop') %>% 
+  #arrange(member_casual, day_of_week) %>% 
+  ggplot(aes(x = day_of_week, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(x = "Day of Week", y = "Average Duration", 
+       fill = "Member/Casual",
+       title = "Average Riding Duration by Day: Members vs. Casual Riders") + my_theme
+```
+
